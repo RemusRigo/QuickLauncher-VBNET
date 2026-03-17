@@ -2,9 +2,11 @@
 Imports System.IO
 Imports System.Net
 Imports System.Net.Mime.MediaTypeNames
+Imports System.Reflection
 Imports System.Reflection.Metadata
 Imports System.Resources
 Imports System.Runtime.CompilerServices
+Imports System.Runtime.InteropServices
 Imports System.Runtime.InteropServices.JavaScript.JSType
 Imports System.Windows
 Imports System.Windows.Forms
@@ -15,31 +17,46 @@ Public Class SysTray
    Inherits ApplicationContext
 
    Private tray As NotifyIcon
-   Private mnuMain As ContextMenuStrip
+   Private mnuLeft As ContextMenuStrip
+   Private mnuRight As ContextMenuStrip
+
+   <DllImport("user32.dll")>
+   Private Shared Function GetDesktopWindow() As IntPtr
+   End Function
+
+   <DllImport("user32.dll")>
+   Private Shared Function SetForegroundWindow(ByVal hWnd As IntPtr) As Boolean
+   End Function
+
 
    Public Sub New()
 	  ' Build menu
-	  mnuMain = New ContextMenuStrip()
+	  mnuLeft = New ContextMenuStrip()
+	  mnuRight = New ContextMenuStrip()
 
-	  ' Shell Folders -----------------------------------------------------------------------------
+	  ' Shell Commands ----------------------------------------------------------------------------
 
-	  Dim mnuShellFolders As New ToolStripMenuItem("Shell Folders")
+	  Dim mnuShellCommands As New ToolStripMenuItem("Shell: commands")
 
 	  Dim dicShellFolderscategorized As New Dictionary(Of String, Dictionary(Of String, String)) From {
 		 {"Current User", New Dictionary(Of String, String) From {
-			{"Profile", "Profile"},
-			{"3D Objects", "3D Objects"},
-			{"Contacts", "Contacts"},
-			{"Desktop", "Desktop"},
-			{"Downloads", "Downloads"},
-			{"Favorites", "Favorites"},
-			{"Links", "Links"},
-			{"Music", "My Music"},
-			{"Personal", "Personal"},
-			{"Pictures", "My Pictures"},
-			{"Camera Roll", "Camera Roll"},
+			{"Profile", "Shell:Profile"},
+			{"3D Objects", "Shell:3D Objects"},
+			{"Contacts", "Shell:Contacts"},
+			{"Desktop", "Shell:Desktop"},
+			{"Downloads", "Shell:Downloads"},
+			{"Favorites", "Shell:Favorites"},
+			{"Games", "Shell:Games"},
+			{"Links", "Shell:Links"},
+			{"Music", "Shell:My Music"},
+			{"Playlists", "Shell:Playlists"},
+			{"Personal", "Shell:Personal"},
+			{"Pictures", "Shell:My Pictures"},
+			{"Camera Roll", "Shell:Camera Roll"},
+			{"Photo Albums", "Shell:PhotoAlbums"},
 			{"Screenshots", "Screenshots"},
 			{"Videos", "My Video"},
+			{"Original Images", "Original Images"}, '
 			{"Recycle Bin Folder", "RecycleBinFolder"},
 			{"Ringtones", "Ringtones"},
 			{"Saved Games", "SavedGames"},
@@ -72,8 +89,10 @@ Public Class SysTray
 			{"Cryptokeys", "Cryptokeys"},
 			{"Dp API Keys", "DpAPIKeys"},
 			{"History", "History"},
+			{"Gadgets (Win 7)", "Gadgets"}, 'Windows 7 only
 			{"GameTasks", "GameTasks"},
 			{"Implicit App Shortcuts", "ImplicitAppShortcuts"},
+			{"Quick Launch", "Quick Launch"},
 			{"PrintHood", "PrintHood"},
 			{"Recent", "Recent"},
 			{"Start Menu", "Start Menu"},
@@ -118,6 +137,7 @@ Public Class SysTray
 		   {"Fonts", "Fonts"},
 		   {"My Computer Folder", "MyComputerFolder"},
 		   {"Network Places Folder", "NetworkPlacesFolder"},
+		   {"Resource Dir", "ResourceDir"},
 		   {"System (System32)", "System"},
 		   {"System X86 (SysWOW64)", "SystemX86"},
 		   {"Windows", "Windows"}
@@ -129,7 +149,8 @@ Public Class SysTray
 		   {"ProgramFiles CommonX86", "ProgramFilesCommonX86"},
 		   {"ProgramFiles X64", "ProgramFilesX64"},
 		   {"ProgramFiles X86", "ProgramFilesX86"},
-		   {"Programs", "Programs"}
+		   {"Programs", "Programs"},
+		   {"Default Gadgets (Win Vista/7/8)", "Default Gadgets"} 'Windows Vista, Windows 7, and Windows 8		
 		}},
 		{"ProgramData", New Dictionary(Of String, String) From {
 		   {"Common AppData", "Common AppData"},
@@ -138,6 +159,7 @@ Public Class SysTray
 		   {"Common Ringtones", "CommonRingtones"},
 		   {"Common Templates", "Common Templates"},
 		   {"Device Metadata Store", "Device Metadata Store"},
+		   {"OEM Links", "OEM Links"},
 		   {"Public Game Tasks", "PublicGameTasks"}
 		}},
 		{"OneDrive", New Dictionary(Of String, String) From {
@@ -154,22 +176,13 @@ Public Class SysTray
 	  }
 
 	  Dim dicShellFoldersUncategorized As New Dictionary(Of String, String) From {
-		 {"Default Gadgets (Win Vista/7/8)", "Default Gadgets"}, 'Windows Vista, Windows 7, and Windows 8		
-		 {"Gadgets (Win 7)", "Gadgets"}, 'Windows 7 only
-		 {"Games", "Games"},
-		 {"HomeGroup Current User Folder", "HomeGroupCurrentUserFolder"},
-		 {"HomeGroup Folder", "HomeGroupFolder"},
+		 {"HomeGroup Current User Folder", "HomeGroupCurrentUserFolder"}, '
+		 {"HomeGroup Folder", "HomeGroupFolder"}, '
 		 {"Internet Folder", "InternetFolder"}, ' deprecated		 
-		 {"Localized Resources Dir", "LocalizedResourcesDir"},
-		 {"MAPI Folder ", "MAPIFolder"},
-		 {"OEM Links", "OEM Links"},
-		 {"Original Images", "Original Images"},
-		 {"Photo Albums", "PhotoAlbums"},
-		 {"Playlists", "Playlists"},
-		 {"Quick Launch", "Quick Launch"},
+		 {"Localized Resources Dir", "LocalizedResourcesDir"}, '
+		 {"MAPI Folder ", "MAPIFolder"}, '		 		 		
 		 {"Recorded TV Library", "RecordedTVLibrary"},
-		 {"Resource Dir", "ResourceDir"},
-		 {"Retail Demo", "Retail Demo"},
+		 {"Retail Demo", "Retail Demo"}, '
 		 {"Roamed Tile Images", "Roamed Tile Images"},
 		 {"Roaming Tiles", "Roaming Tiles"},
 		 {"Sample Music", "SampleMusic"},
@@ -192,30 +205,52 @@ Public Class SysTray
 			AddHandler item.Click, Sub() LaunchShellCommands(localShell)
 			categoryItem.DropDownItems.Add(item)
 		 Next
-		 mnuShellFolders.DropDownItems.Add(categoryItem)
+		 mnuShellCommands.DropDownItems.Add(categoryItem)
 	  Next
 
 	  For Each entry In dicShellFoldersUncategorized
 		 Dim item As New ToolStripMenuItem(entry.Key)
 		 Dim localShell = entry.Value
 		 AddHandler item.Click, Sub() LaunchShellCommands(localShell)
-		 mnuShellFolders.DropDownItems.Add(item)
+		 mnuShellCommands.DropDownItems.Add(item)
 	  Next
 
-	  ' Build main menu
-	  mnuMain.Items.Add(mnuShellFolders)
-	  mnuMain.Items.Add(New ToolStripSeparator())
-	  mnuMain.Items.Add("&About", Nothing, AddressOf AppAbout)
-	  mnuMain.Items.Add("Rebuild missing folders", Nothing, AddressOf AppRebuild)
-	  mnuMain.Items.Add("E&xit", Nothing, AddressOf AppExit)
+	  ' Left-click menu
+	  mnuLeft.Items.Add("Rebuild missing folders", Nothing, AddressOf AppRebuild)
+	  mnuLeft.Items.Add(New ToolStripSeparator())
+	  mnuLeft.Items.Add("&About", Nothing, AddressOf AppAbout)
+	  mnuLeft.Items.Add("E&xit", Nothing, AddressOf AppExit)
+
+	  ' Right-click menu
+	  mnuRight.Items.Add(mnuShellCommands)
+	  mnuRight.Items.Add(New ToolStripSeparator())
+	  mnuRight.Items.Add("&About", Nothing, AddressOf AppAbout)
+	  mnuRight.Items.Add("E&xit", Nothing, AddressOf AppExit)
 
 	  ' Create tray icon
 	  tray = New NotifyIcon()
 	  tray.Icon = My.Resources.Resources.terminal
 	  tray.Visible = True
-	  tray.ContextMenuStrip = mnuMain
-	  tray.Text = "SysCommander v1.0"
+	  tray.ContextMenuStrip = mnuRight
+	  tray.Text = "QuickLauncher v1.0"
 
+	  AddHandler tray.MouseClick, AddressOf Tray_MouseClick
+	  AddHandler tray.MouseDown, AddressOf Tray_MouseClick
+	  AddHandler tray.MouseUp, AddressOf Tray_MouseClick
+   End Sub
+
+
+   Private Sub Tray_MouseClick(sender As Object, e As MouseEventArgs)
+	  If e.Button = MouseButtons.Left Then
+		 Dim mi As MethodInfo = GetType(NotifyIcon).GetMethod("ShowContextMenu", Reflection.BindingFlags.Instance Or Reflection.BindingFlags.NonPublic)
+		 tray.ContextMenuStrip = mnuLeft
+		 mi?.Invoke(tray, Nothing)
+	  ElseIf e.Button = MouseButtons.Right Then
+		 Dim mi As MethodInfo = GetType(NotifyIcon).GetMethod("ShowContextMenu", Reflection.BindingFlags.Instance Or Reflection.BindingFlags.NonPublic)
+		 tray.ContextMenuStrip = mnuRight
+		 mi?.Invoke(tray, Nothing)
+	  End If
+	  tray.ContextMenuStrip = Nothing
    End Sub
 
    ' ----------------------------------------------------------------------------------------------
@@ -223,19 +258,28 @@ Public Class SysTray
 
    Private Sub LaunchShellCommands(app As String)
 	  Try
-		 Process.Start("explorer.exe", "shell:" & app)
+		 Process.Start("explorer.exe", app)
 	  Catch ex As Exception
 	  End Try
    End Sub
 
    Private Sub AppAbout(sender As Object, e As EventArgs)
 	  Dim frm As New frmAbout()
+	  frm.ShowInTaskbar = False
 	  frm.ShowDialog()
+	  frm.Dispose()
    End Sub
 
    Private Sub AppRebuild(sender As Object, e As EventArgs)
-	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%USERPROFILE%\Contacts"))
-	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%USERPROFILE%\3D Objects"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%UserProfile%\3D Objects"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%UserProfile%\Contacts"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%UserProfile%\Music\Playlists"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%UserProfile%\Pictures\Camera Roll"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%UserProfile%\Pictures\Slide Shows"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%LocalAppData%\Microsoft\Windows\Burn\Burn"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%LocalAppData%\Microsoft\Windows Photo Gallery\Original Images"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%ProgramFiles%\Windows Sidebar\Gadgets"))
+	  System.IO.Directory.CreateDirectory(Environment.ExpandEnvironmentVariables("%ProgramData%\OEM Links"))
    End Sub
 
    Private Sub AppExit(sender As Object, e As EventArgs)
