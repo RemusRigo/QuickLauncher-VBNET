@@ -1,17 +1,23 @@
-﻿Public Class frmAbout
-   Private Sub imgPayPal_Click(sender As Object, e As EventArgs) Handles imgPayPal.Click
-	  Process.Start(New ProcessStartInfo("https://paypal.me/remusrigo") With {.UseShellExecute = True})
-   End Sub
-
-   Private Sub imgRevolut_Click(sender As Object, e As EventArgs) Handles imgRevolut.Click
-	  Process.Start(New ProcessStartInfo("https://revolut.me/remusrigo") With {.UseShellExecute = True})
-   End Sub
-
+﻿'--------------------------------------------------------------------------------------------------
+' About form
+'    Copyright (C) 2026 Remus Rigo
+'       v1.0.20260317
+'--------------------------------------------------------------------------------------------------
+Public Class frmAbout
    Private Sub frmAbout_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-	  lnkLblGitHub.Links.Add(0, lnkLblGitHub.Text.Length, "https://github.com/RemusRigo/")
+      lnkLblGitHub.Links.Add(0, lnkLblGitHub.Text.Length, "https://github.com/RemusRigo/")
    End Sub
 
    Private Sub lnkLblGitHub_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles lnkLblGitHub.LinkClicked
-	  Process.Start(New ProcessStartInfo("https://github.com/RemusRigo/") With {.UseShellExecute = True})
+      Process.Start(New ProcessStartInfo("https://github.com/RemusRigo/") With {.UseShellExecute = True})
    End Sub
+
+   Private Sub imgPayPal_Click(sender As Object, e As EventArgs) Handles imgPayPal.Click
+      Process.Start(New ProcessStartInfo("https://paypal.me/remusrigo") With {.UseShellExecute = True})
+   End Sub
+
+   Private Sub imgRevolut_Click(sender As Object, e As EventArgs) Handles imgRevolut.Click
+      Process.Start(New ProcessStartInfo("https://revolut.me/remusrigo") With {.UseShellExecute = True})
+   End Sub
+
 End Class

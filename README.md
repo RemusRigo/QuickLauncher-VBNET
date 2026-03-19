@@ -11,7 +11,7 @@ A system tray quick system tools launcher
 
 ## Installation
 
-You must install .NET Runtime 10 x64 and then just run RRQuickLauncher.exe
+You must install .NET Runtime 10 x64 and then just run QuickLauncher.exe
 
 
 
